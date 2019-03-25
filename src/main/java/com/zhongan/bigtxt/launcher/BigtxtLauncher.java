@@ -51,8 +51,8 @@ public class BigtxtLauncher {
 	public static String replace(Jedis jedis, Connection connection, String id, String tmpData) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
-		String sql = "select data from t_bigdata where id=? ";
-		String sql1 = new StringBuilder("update t_bigdata set alterTime=?,data=? where id=? ").toString();
+		String sql = "select data from t_bigtxt where id=? ";
+		String sql1 = new StringBuilder("update t_bigtxt set alterTime=?,data=? where id=? ").toString();
 		List sqlParams1 = null;
 		boolean autoCommitSrc = false;
 		try {
@@ -121,8 +121,8 @@ public class BigtxtLauncher {
 	public static String insert(Connection connection, String tmpData) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
-		String sql = "select data from t_bigdata where id=? ";
-		String sql1 = "insert into t_bigdata (id,data,alterTime,addTime) values(?,?,?,?)";
+		String sql = "select data from t_bigtxt where id=? ";
+		String sql1 = "insert into t_bigtxt (id,data,alterTime,addTime) values(?,?,?,?)";
 		List sqlParams1 = null;
 		boolean autoCommitSrc = false;
 		try {
@@ -179,8 +179,8 @@ public class BigtxtLauncher {
 	public static String delete(Jedis jedis, Connection connection, String id) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
-		String sql = "select data from t_bigdata where id=? ";
-		String sql1 = "delete from t_bigdata where id=? ";
+		String sql = "select data from t_bigtxt where id=? ";
+		String sql1 = "delete from t_bigtxt where id=? ";
 		boolean autoCommitSrc = false;
 		try {
 			autoCommitSrc = connection.getAutoCommit();
@@ -245,7 +245,7 @@ public class BigtxtLauncher {
 			String bigdataRedisKey = "bigdata" + id;
 			String data = jedis.get(bigdataRedisKey);
 			if (data == null || data.isEmpty()) {
-				sql = "select data from t_bigdata where id=?";
+				sql = "select data from t_bigtxt where id=?";
 				pst = connection.prepareStatement(sql);
 				Map row = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
 				pst.close();
