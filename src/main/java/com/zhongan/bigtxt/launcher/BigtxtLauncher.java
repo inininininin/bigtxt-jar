@@ -17,7 +17,7 @@ import com.giveup.HtmlUtils;
 import com.giveup.JdbcUtils;
 import com.giveup.ValueUtils;
 
-import oss_launcher.OssAsyncQueue;
+import oss.launcher.OssLauncher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -70,11 +70,10 @@ public class BigtxtLauncher {
 			if (oldRow == null)
 				return insert(connection, tmpData);
 
-			OssAsyncQueue.realizeSync(connection, HtmlUtils.extractUrls(tmpData));
+			OssLauncher.realize(connection, HtmlUtils.extractUrls(tmpData));
 
-			String data = OssAsyncQueue.tmpToRealUrls(tmpData);
-			OssAsyncQueue.deleteSync(connection, 0,
-					HtmlUtils.extractOffUrls(ValueUtils.toString(oldRow.get("data")), data));
+			String data = OssLauncher.tmpToRealUrls(tmpData);
+			OssLauncher.delete(connection, HtmlUtils.extractOffUrls(ValueUtils.toString(oldRow.get("data")), data));
 
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
@@ -133,14 +132,14 @@ public class BigtxtLauncher {
 			String id = 1 + RandomStringUtils.randomNumeric(11);
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(id);
-			sqlParams1.add(OssAsyncQueue.tmpToRealUrls(tmpData));
+			sqlParams1.add(OssLauncher.tmpToRealUrls(tmpData));
 			sqlParams1.add(new Date());
 			sqlParams1.add(new Date());
 			pst1 = connection.prepareStatement(sql1);
 			JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
 			pst1.close();
 
-			OssAsyncQueue.realizeSync(connection, HtmlUtils.extractUrls(tmpData));
+			OssLauncher.realize(connection, HtmlUtils.extractUrls(tmpData));
 
 			if (autoCommitSrc)
 				connection.commit();
@@ -197,7 +196,7 @@ public class BigtxtLauncher {
 			JdbcUtils.runUpdate(pst1, sql1, id);
 			pst1.close();
 
-			OssAsyncQueue.deleteSync(connection, 0, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
+			OssLauncher.delete(connection, 0, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
 
 			if (autoCommitSrc)
 				connection.commit();
