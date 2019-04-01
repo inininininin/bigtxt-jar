@@ -80,7 +80,7 @@ public class BigtxtLauncher {
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
 			sqlParams1.add(bigtxt);
-			sqlParams1.add(newInnerUrls);
+			sqlParams1.add(newInnerUrls.toString().replaceAll("\\[|\\]", ""));
 			sqlParams1.add(id);
 			pst1 = connection.prepareStatement(sql1);
 			JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
@@ -138,7 +138,7 @@ public class BigtxtLauncher {
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(id);
 			sqlParams1.add(bigtxt);
-			sqlParams1.add(innerUrls);
+			sqlParams1.add(innerUrls.toString().replaceAll("\\[|\\]", ""));
 			sqlParams1.add(new Date());
 			sqlParams1.add(new Date());
 			pst1 = connection.prepareStatement(sql1);
@@ -265,7 +265,7 @@ public class BigtxtLauncher {
 					if (innerUrls == null || innerUrls.isEmpty()) {
 						pst1 = connection.prepareStatement(sql1);
 						sqlParams1 = new ArrayList();
-						sqlParams1.add(HtmlUtils.extractUrls(data));
+						sqlParams1.add(HtmlUtils.extractUrls(data).toString().replaceAll("\\[|\\]", ""));
 						sqlParams1.add(id);
 						JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
 						pst1.close();
