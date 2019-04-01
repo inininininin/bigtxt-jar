@@ -244,19 +244,33 @@ public class BigtxtLauncher {
 
 	public static String getData(Jedis jedis, Connection connection, String id) throws Exception {
 		PreparedStatement pst = null;
+		PreparedStatement pst1 = null;
 		String sql = null;
+		String sql1 = new StringBuilder("update t_bigtxt set innerUrls=? where id=? ").toString();
+		List sqlParams1 = null;
 		try {
 			// 获取请求参数
 			String bigdataRedisKey = "bigdata" + id;
 			String data = jedis.get(bigdataRedisKey);
+			String innerUrls = null;
 			if (data == null || data.isEmpty()) {
-				sql = "select data from t_bigtxt where id=?";
+				sql = "select data,innerUrls from t_bigtxt where id=?";
 				pst = connection.prepareStatement(sql);
 				Map row = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
 				pst.close();
-				if (row != null)
+				if (row != null) {
 					data = (String) row.get("data");
+					innerUrls = (String) row.get("innerUrls");
 
+					if (innerUrls == null || innerUrls.isEmpty()) {
+						pst1 = connection.prepareStatement(sql1);
+						sqlParams1 = new ArrayList();
+						sqlParams1.add(HtmlUtils.extractUrls(data));
+						sqlParams1.add(id);
+						JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
+						pst1.close();
+					}
+				}
 				if (data != null && !data.isEmpty())
 					jedis.setex(bigdataRedisKey, 1 * 24 * 60, data);
 			}
