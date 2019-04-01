@@ -15,6 +15,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 import com.giveup.HtmlUtils;
 import com.giveup.JdbcUtils;
+import com.giveup.OtherUtils;
 import com.giveup.ValueUtils;
 
 import oss.launcher.OssLauncher;
@@ -31,13 +32,13 @@ public class BigtxtLauncher {
 		this.dataSource = dataSource;
 	}
 
-	public String replace(String id, String tmpData) throws Exception {
+	public String replace(String id, String bigtxt) throws Exception {
 		Connection connection = null;
 		Jedis jedis = null;
 		try {
 			connection = dataSource.getConnection();
 			jedis = jedisPool.getResource();
-			return replace(jedis, connection, id, tmpData);
+			return replace(jedis, connection, id, bigtxt);
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -48,11 +49,11 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String replace(Jedis jedis, Connection connection, String id, String tmpData) throws Exception {
+	public static String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
-		String sql1 = new StringBuilder("update t_bigtxt set alterTime=?,data=? where id=? ").toString();
+		String sql1 = new StringBuilder("update t_bigtxt set alterTime=?,data=?,innerUrls=? where id=? ").toString();
 		List sqlParams1 = null;
 		boolean autoCommitSrc = false;
 		try {
@@ -61,23 +62,25 @@ public class BigtxtLauncher {
 				connection.setAutoCommit(false);
 
 			if (id == null)
-				return insert(connection, tmpData);
+				return insert(connection, bigtxt);
 
 			pst = connection.prepareStatement(sql);
 			Map oldRow = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
 			pst.close();
 
 			if (oldRow == null)
-				return insert(connection, tmpData);
+				return insert(connection, bigtxt);
 
-			OssLauncher.realize(connection, HtmlUtils.extractUrls(tmpData));
+			List<String> newInnerUrls = HtmlUtils.extractUrls(bigtxt);
+			OssLauncher.realize(connection, newInnerUrls);
 
-			String data = OssLauncher.tmpToRealUrls(tmpData);
-			OssLauncher.delete(connection, HtmlUtils.extractOffUrls(ValueUtils.toString(oldRow.get("data")), data));
+			List<String> oldInnerUrls = HtmlUtils.extractUrls(ValueUtils.toString(oldRow.get("data")));
+			OssLauncher.delete(connection, OtherUtils.extractOffStrs(oldInnerUrls, newInnerUrls, true));
 
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
-			sqlParams1.add(data);
+			sqlParams1.add(bigtxt);
+			sqlParams1.add(newInnerUrls);
 			sqlParams1.add(id);
 			pst1 = connection.prepareStatement(sql1);
 			JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
@@ -104,11 +107,11 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String insert(String tmpData) throws Exception {
+	public String insert(String bigtxt) throws Exception {
 		Connection connection = null;
 		try {
 			connection = dataSource.getConnection();
-			return insert(tmpData);
+			return insert(bigtxt);
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -117,11 +120,11 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String insert(Connection connection, String tmpData) throws Exception {
+	public static String insert(Connection connection, String bigtxt) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
-		String sql1 = "insert into t_bigtxt (id,data,alterTime,addTime) values(?,?,?,?)";
+		String sql1 = "insert into t_bigtxt (id,data,innerUrls,alterTime,addTime) values(?,?,?,?,?)";
 		List sqlParams1 = null;
 		boolean autoCommitSrc = false;
 		try {
@@ -129,17 +132,20 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.setAutoCommit(false);
 
+			List<String> innerUrls = HtmlUtils.extractUrls(bigtxt);
+
 			String id = 1 + RandomStringUtils.randomNumeric(11);
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(id);
-			sqlParams1.add(OssLauncher.tmpToRealUrls(tmpData));
+			sqlParams1.add(bigtxt);
+			sqlParams1.add(innerUrls);
 			sqlParams1.add(new Date());
 			sqlParams1.add(new Date());
 			pst1 = connection.prepareStatement(sql1);
 			JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
 			pst1.close();
 
-			OssLauncher.realize(connection, HtmlUtils.extractUrls(tmpData));
+			OssLauncher.realize(connection, innerUrls);
 
 			if (autoCommitSrc)
 				connection.commit();
@@ -265,15 +271,15 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String getFirstVideo(String id) throws Exception {
-		String data = getData(id);
-		List<String> list = new ArrayList<String>();
-		Pattern pa = Pattern.compile("<video.*?src=('|\")(.*?)('|\")>");
-		Matcher ma = pa.matcher(data);
-		while (ma.find())// 寻找符合el的字串
-		{
-			return ma.group(2);
-		}
-		return null;
-	}
+	// public String getFirstMedia(String id) throws Exception {
+	// String data = getData(id);
+	// List<String> list = new ArrayList<String>();
+	// Pattern pa = Pattern.compile("<video.*?src=('|\")(.*?)('|\")>");
+	// Matcher ma = pa.matcher(data);
+	// while (ma.find())// 寻找符合el的字串
+	// {
+	// return ma.group(2);
+	// }
+	// return null;
+	// }
 }
