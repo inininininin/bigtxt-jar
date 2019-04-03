@@ -50,6 +50,9 @@ public class BigtxtLauncher {
 	}
 
 	public static String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
+		if (bigtxt == null || bigtxt.isEmpty())
+			return id;
+
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
@@ -60,7 +63,6 @@ public class BigtxtLauncher {
 			autoCommitSrc = connection.getAutoCommit();
 			if (autoCommitSrc)
 				connection.setAutoCommit(false);
-
 			if (id == null)
 				return insert(connection, bigtxt);
 
