@@ -28,9 +28,10 @@ public class BigtxtLauncher {
 	private DataSource dataSource = null;
 	private OssLauncher ossLauncher = null;
 
-	public BigtxtLauncher(JedisPool jedisPool, DataSource dataSource) {
+	public BigtxtLauncher(JedisPool jedisPool, DataSource dataSource, OssLauncher ossLauncher) {
 		this.jedisPool = jedisPool;
 		this.dataSource = dataSource;
+		this.ossLauncher = ossLauncher;
 	}
 
 	public String replace(String id, String bigtxt) throws Exception {
