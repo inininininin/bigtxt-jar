@@ -26,6 +26,7 @@ public class BigtxtLauncher {
 
 	private JedisPool jedisPool = null;
 	private DataSource dataSource = null;
+	private OssLauncher ossLauncher = null;
 
 	public BigtxtLauncher(JedisPool jedisPool, DataSource dataSource) {
 		this.jedisPool = jedisPool;
@@ -49,7 +50,7 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
+	public String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
 		if (bigtxt == null || bigtxt.isEmpty())
 			return id;
 
@@ -74,10 +75,10 @@ public class BigtxtLauncher {
 				return insert(connection, bigtxt);
 
 			List<String> newInnerUrls = HtmlUtils.extractUrls(bigtxt);
-			OssLauncher.realize(connection, newInnerUrls);
+			ossLauncher.realize(connection, newInnerUrls);
 
 			List<String> oldInnerUrls = HtmlUtils.extractUrls(ValueUtils.toString(oldRow.get("data")));
-			OssLauncher.delete(connection, OtherUtils.extractOffStrs(oldInnerUrls, newInnerUrls, true));
+			ossLauncher.delete(connection, OtherUtils.extractOffStrs(oldInnerUrls, newInnerUrls, true));
 
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
@@ -122,7 +123,7 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String insert(Connection connection, String bigtxt) throws Exception {
+	public String insert(Connection connection, String bigtxt) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
@@ -147,7 +148,7 @@ public class BigtxtLauncher {
 			JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
 			pst1.close();
 
-			OssLauncher.realize(connection, innerUrls);
+			ossLauncher.realize(connection, innerUrls);
 
 			if (autoCommitSrc)
 				connection.commit();
@@ -183,7 +184,7 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String delete(Jedis jedis, Connection connection, String id) throws Exception {
+	public String delete(Jedis jedis, Connection connection, String id) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
@@ -204,7 +205,7 @@ public class BigtxtLauncher {
 			JdbcUtils.runUpdate(pst1, sql1, id);
 			pst1.close();
 
-			OssLauncher.delete(connection, 0, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
+			ossLauncher.delete(connection, 0, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
 
 			if (autoCommitSrc)
 				connection.commit();
