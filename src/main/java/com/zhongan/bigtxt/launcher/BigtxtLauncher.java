@@ -51,6 +51,19 @@ public class BigtxtLauncher {
 		}
 	}
 
+	public String replace(Connection connection, String id, String bigtxt) throws Exception {
+		Jedis jedis = null;
+		try {
+			jedis = jedisPool.getResource();
+			return replace(jedis, connection, id, bigtxt);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (jedis != null)
+				jedis.close();
+		}
+	}
+
 	public String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
 		if (bigtxt == null || bigtxt.isEmpty())
 			return id;
