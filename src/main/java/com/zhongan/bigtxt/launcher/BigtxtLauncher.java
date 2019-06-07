@@ -128,7 +128,7 @@ public class BigtxtLauncher {
 		Connection connection = null;
 		try {
 			connection = dataSource.getConnection();
-			return insert(bigtxt);
+			return insert(connection, bigtxt);
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -219,7 +219,7 @@ public class BigtxtLauncher {
 			JdbcUtils.runUpdate(pst1, sql1, id);
 			pst1.close();
 
-			ossLauncher.delete(connection, 0, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
+			ossLauncher.delete(connection, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
 
 			if (autoCommitSrc)
 				connection.commit();
