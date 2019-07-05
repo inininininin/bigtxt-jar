@@ -25,12 +25,12 @@
 		<dependency>
 			<groupId>com.zayiliao</groupId>
 			<artifactId>oss-launcher</artifactId>
-			<version>dev</version>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.giveup</groupId>
 			<artifactId>utils</artifactId>
-			<version>dev</version>
+			<version>1.0.0</version>
 		</dependency>
 	</dependencies>
 </project>
