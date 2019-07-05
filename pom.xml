@@ -5,7 +5,7 @@
 
 	<groupId>com.zayiliao</groupId>
 	<artifactId>bigtxt-launcher</artifactId>
-	<version>dev</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
 	<name>bigtxt</name>
