@@ -81,6 +81,11 @@ public class BigtxtLauncher {
 			if (id == null)
 				return insert(connection, bigtxt);
 
+			if (bigtxt.isEmpty()) {
+				delete(jedis, connection, id);
+				return "";
+			}
+
 			pst = connection.prepareStatement(sql);
 			Map oldRow = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
 			pst.close();
@@ -138,6 +143,8 @@ public class BigtxtLauncher {
 	}
 
 	public String insert(Connection connection, String bigtxt) throws Exception {
+		if (bigtxt == null || bigtxt.isEmpty())
+			return null;
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = "select data from t_bigtxt where id=? ";
