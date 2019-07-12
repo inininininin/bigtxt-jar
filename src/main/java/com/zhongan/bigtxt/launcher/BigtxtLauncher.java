@@ -65,7 +65,7 @@ public class BigtxtLauncher {
 	}
 
 	public String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
-		if (bigtxt == null || bigtxt.isEmpty())
+		if (bigtxt == null)
 			return id;
 
 		PreparedStatement pst = null;
