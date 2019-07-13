@@ -34,43 +34,12 @@ public class BigtxtLauncher {
 		this.ossLauncher = ossLauncher;
 	}
 
-	public String replace(String id, String bigtxt) throws Exception {
-		Connection connection = null;
-		Jedis jedis = null;
-		try {
-			connection = dataSource.getConnection();
-			jedis = jedisPool.getResource();
-			return replace(jedis, connection, id, bigtxt);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			if (connection != null)
-				connection.close();
-			if (jedis != null)
-				jedis.close();
-		}
-	}
-
-	public String replace(Connection connection, String id, String bigtxt) throws Exception {
-		Jedis jedis = null;
-		try {
-			jedis = jedisPool.getResource();
-			return replace(jedis, connection, id, bigtxt);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			if (jedis != null)
-				jedis.close();
-		}
-	}
-
-	public String replace(Jedis jedis, Connection connection, String id, String bigtxt) throws Exception {
-		if (bigtxt == null)
+	public String replace(String id, String data, Jedis jedis, Connection connection) throws Exception {
+		if (data == null)
 			return id;
 
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
-		String sql = "select data from t_bigtxt where id=? ";
 		String sql1 = new StringBuilder("update t_bigtxt set alterTime=?,data=?,innerUrls=? where id=? ").toString();
 		List sqlParams1 = null;
 		boolean autoCommitSrc = false;
@@ -79,21 +48,19 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.setAutoCommit(false);
 			if (id == null)
-				return insert(connection, bigtxt);
+				return insert(data, connection);
 
-			if (bigtxt.isEmpty()) {
-				delete(jedis, connection, id);
+			if (data.isEmpty()) {
+				delete(id, jedis, connection);
 				return "";
 			}
 
-			pst = connection.prepareStatement(sql);
-			Map oldRow = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
-			pst.close();
+			Map oldRow = JdbcUtils.runQueryOne(connection, "select data from t_bigtxt where id=? ", id);
 
 			if (oldRow == null)
-				return insert(connection, bigtxt);
+				return insert(data, connection);
 
-			List<String> newInnerUrls = HtmlUtils.extractUrls(bigtxt);
+			List<String> newInnerUrls = HtmlUtils.extractUrls(data);
 			ossLauncher.realize(connection, newInnerUrls);
 
 			List<String> oldInnerUrls = HtmlUtils.extractUrls(ValueUtils.toString(oldRow.get("data")));
@@ -101,7 +68,7 @@ public class BigtxtLauncher {
 
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
-			sqlParams1.add(bigtxt);
+			sqlParams1.add(data);
 			sqlParams1.add(newInnerUrls.toString().replaceAll("\\[|\\]", ""));
 			sqlParams1.add(id);
 			pst1 = connection.prepareStatement(sql1);
@@ -116,11 +83,11 @@ public class BigtxtLauncher {
 
 			return id;
 		} catch (Exception e) {
-			if (connection != null && autoCommitSrc)
-				connection.commit();
+			if (autoCommitSrc)
+				connection.rollback();
 			throw e;
 		} finally {
-			if (connection != null && autoCommitSrc)
+			if (autoCommitSrc)
 				connection.setAutoCommit(autoCommitSrc);
 			if (pst != null)
 				pst.close();
@@ -129,21 +96,8 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String insert(String bigtxt) throws Exception {
-		Connection connection = null;
-		try {
-			connection = dataSource.getConnection();
-			return insert(connection, bigtxt);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			if (connection != null)
-				connection.close();
-		}
-	}
-
-	public String insert(Connection connection, String bigtxt) throws Exception {
-		if (bigtxt == null || bigtxt.isEmpty())
+	public String insert(String data, Connection connection) throws Exception {
+		if (data == null || data.isEmpty())
 			return null;
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
@@ -156,12 +110,12 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.setAutoCommit(false);
 
-			List<String> innerUrls = HtmlUtils.extractUrls(bigtxt);
+			List<String> innerUrls = HtmlUtils.extractUrls(data);
 
 			String id = 1 + RandomStringUtils.randomNumeric(11);
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(id);
-			sqlParams1.add(bigtxt);
+			sqlParams1.add(data);
 			sqlParams1.add(innerUrls.toString().replaceAll("\\[|\\]", ""));
 			sqlParams1.add(new Date());
 			sqlParams1.add(new Date());
@@ -175,11 +129,11 @@ public class BigtxtLauncher {
 				connection.commit();
 			return id;
 		} catch (Exception e) {
-			if (connection != null && autoCommitSrc)
-				connection.commit();
+			if (autoCommitSrc)
+				connection.rollback();
 			throw e;
 		} finally {
-			if (connection != null && autoCommitSrc)
+			if (autoCommitSrc)
 				connection.setAutoCommit(autoCommitSrc);
 			if (pst != null)
 				pst.close();
@@ -188,85 +142,38 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String delete(String id) throws Exception {
-		Connection connection = null;
-		Jedis jedis = null;
-		try {
-			connection = dataSource.getConnection();
-			jedis = jedisPool.getResource();
-			return delete(jedis, connection, id);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			if (connection != null)
-				connection.close();
-			if (jedis != null)
-				jedis.close();
-		}
-	}
-
-	public String delete(Jedis jedis, Connection connection, String id) throws Exception {
-		PreparedStatement pst = null;
-		PreparedStatement pst1 = null;
-		String sql = "select data from t_bigtxt where id=? ";
-		String sql1 = "delete from t_bigtxt where id=? ";
+	public String delete(String id, Jedis jedis, Connection connection) throws Exception {
 		boolean autoCommitSrc = false;
 		try {
 			autoCommitSrc = connection.getAutoCommit();
 			if (autoCommitSrc)
 				connection.setAutoCommit(false);
-			pst = connection.prepareStatement(sql);
-			Map row = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
-			pst.close();
+			Map row = JdbcUtils.runQueryOne(connection, "select data from t_bigtxt where id=? ", id);
 
 			if (row == null)
 				return id;
 
-			pst1 = connection.prepareStatement(sql1);
-			JdbcUtils.runUpdate(pst1, sql1, id);
-			pst1.close();
+			JdbcUtils.runUpdate(connection, "delete from t_bigtxt where id=? ", id);
 
 			ossLauncher.delete(connection, HtmlUtils.extractUrls(ValueUtils.toString(row.get("data"))));
 
 			if (autoCommitSrc)
 				connection.commit();
 
-			String bigdataRedisKey = "bigdata" + id;
-			jedis.del(bigdataRedisKey);
+			jedis.del("bigdata" + id);
 
 			return id;
 		} catch (Exception e) {
-			if (connection != null && autoCommitSrc)
-				connection.commit();
+			if (autoCommitSrc)
+				connection.rollback();
 			throw e;
 		} finally {
-			if (connection != null && autoCommitSrc)
+			if (autoCommitSrc)
 				connection.setAutoCommit(autoCommitSrc);
-			if (pst != null)
-				pst.close();
-			if (pst1 != null)
-				pst1.close();
 		}
 	}
 
-	public String getData(String id) throws Exception {
-		Connection connection = null;
-		Jedis jedis = null;
-		try {
-			connection = dataSource.getConnection();
-			jedis = jedisPool.getResource();
-			return getData(jedis, connection, id);
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			if (connection != null)
-				connection.close();
-			if (jedis != null)
-				jedis.close();
-		}
-	}
-
-	public static String getData(Jedis jedis, Connection connection, String id) throws Exception {
+	public static String getData(String id, Jedis jedis, Connection connection) throws Exception {
 		PreparedStatement pst = null;
 		PreparedStatement pst1 = null;
 		String sql = null;
@@ -274,31 +181,12 @@ public class BigtxtLauncher {
 		List sqlParams1 = null;
 		try {
 			// 获取请求参数
-			String bigdataRedisKey = "bigdata" + id;
-			String data = jedis.get(bigdataRedisKey);
-			String innerUrls = null;
+			String data = jedis.get("bigdata" + id);
 			if (data == null || data.isEmpty()) {
-				sql = "select data,innerUrls from t_bigtxt where id=?";
-				pst = connection.prepareStatement(sql);
-				Map row = JdbcUtils.parseResultSetOfOne(JdbcUtils.runQuery(pst, sql, id));
-				pst.close();
-				if (row != null) {
-					data = (String) row.get("data");
-					innerUrls = (String) row.get("innerUrls");
-
-					if (innerUrls == null || innerUrls.isEmpty()) {
-						pst1 = connection.prepareStatement(sql1);
-						sqlParams1 = new ArrayList();
-						sqlParams1.add(HtmlUtils.extractUrls(data).toString().replaceAll("\\[|\\]", ""));
-						sqlParams1.add(id);
-						JdbcUtils.runUpdate(pst1, sql1, sqlParams1);
-						pst1.close();
-					}
-				}
+				data = JdbcUtils.runQueryOneString(connection, "select data from t_bigtxt where id=?", id);
 				if (data != null && !data.isEmpty())
-					jedis.setex(bigdataRedisKey, 1 * 24 * 60, data);
+					jedis.setex("bigdata" + id, 1 * 24 * 60, data);
 			}
-
 			return data;
 		} catch (Exception e) {
 			throw e;
