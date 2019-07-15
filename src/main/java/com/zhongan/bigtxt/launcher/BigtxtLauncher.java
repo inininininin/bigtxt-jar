@@ -85,7 +85,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			jedis.del("bigdata" + id);
+			jedis.del("bigtxt" + id);
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
@@ -165,7 +165,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			jedis.del("bigdata" + id);
+			jedis.del("bigtxt" + id);
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
@@ -181,7 +181,7 @@ public class BigtxtLauncher {
 			throws Exception {
 		try {
 			// 获取请求参数
-			RBinaryStream stream = redissonClient.getBinaryStream("bigdata" + id);
+			RBinaryStream stream = redissonClient.getBinaryStream("bigtxt" + id);
 			InputStream in = null;
 			if (!stream.isExists()) {
 				in = JdbcUtils.runQueryOneStream(connection, "select data from t_bigtxt where id=?", id);
@@ -189,7 +189,8 @@ public class BigtxtLauncher {
 					IOUtils.copy(in, stream.getOutputStream());
 				}
 			}
-			stream.expireAt(5 * 24 * 60 * 60);
+			stream.expireAt(new Date().getTime() + 5 * 24 * 60 * 60 * 1000);
+			stream = redissonClient.getBinaryStream("bigtxt" + id);
 			return stream.getInputStream();
 		} catch (Exception e) {
 			throw e;
