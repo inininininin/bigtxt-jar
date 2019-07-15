@@ -30,17 +30,18 @@ import redis.clients.jedis.JedisPool;
 
 public class BigtxtLauncher {
 
-	private JedisPool jedisPool = null;
+	private Config redissonConfig = null;
 	private DataSource dataSource = null;
 	private OssLauncher ossLauncher = null;
 
-	public BigtxtLauncher(JedisPool jedisPool, DataSource dataSource, OssLauncher ossLauncher) {
-		this.jedisPool = jedisPool;
+	public BigtxtLauncher(Config redissonConfig, DataSource dataSource, OssLauncher ossLauncher) {
+		this.redissonConfig = redissonConfig;
 		this.dataSource = dataSource;
 		this.ossLauncher = ossLauncher;
 	}
 
-	public String replace(String id, String data, Jedis jedis, Connection connection) throws Exception {
+	public String replace(String id, String data, RedissonClient redissonClient, Connection connection)
+			throws Exception {
 		if (data == null)
 			return id;
 
@@ -57,7 +58,7 @@ public class BigtxtLauncher {
 				return insert(data, connection);
 
 			if (data.isEmpty()) {
-				delete(id, jedis, connection);
+				delete(id, redissonClient, connection);
 				return "";
 			}
 
@@ -84,9 +85,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			String bigdataRedisKey = "bigdata" + id;
-			jedis.del(bigdataRedisKey);
-
+			redissonClient.getBinaryStream("bigdata" + id).delete();
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
@@ -148,7 +147,7 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String delete(String id, Jedis jedis, Connection connection) throws Exception {
+	public String delete(String id, RedissonClient redissonClient, Connection connection) throws Exception {
 		boolean autoCommitSrc = false;
 		try {
 			autoCommitSrc = connection.getAutoCommit();
@@ -166,8 +165,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			jedis.del("bigdata" + id);
-
+			redissonClient.getBinaryStream("bigdata" + id).delete();
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
