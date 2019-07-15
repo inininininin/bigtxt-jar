@@ -21,7 +21,6 @@ import org.redisson.config.Config;
 import com.giveup.HtmlUtils;
 import com.giveup.JdbcUtils;
 import com.giveup.ListUtils;
-import com.giveup.OtherUtils;
 import com.giveup.ValueUtils;
 
 import oss.launcher.OssLauncher;
@@ -33,15 +32,16 @@ public class BigtxtLauncher {
 	private Config redissonConfig = null;
 	private DataSource dataSource = null;
 	private OssLauncher ossLauncher = null;
+	private JedisPool jedisPool = null;
 
-	public BigtxtLauncher(Config redissonConfig, DataSource dataSource, OssLauncher ossLauncher) {
+	public BigtxtLauncher(JedisPool jedisPool, Config redissonConfig, DataSource dataSource, OssLauncher ossLauncher) {
 		this.redissonConfig = redissonConfig;
+		this.jedisPool = jedisPool;
 		this.dataSource = dataSource;
 		this.ossLauncher = ossLauncher;
 	}
 
-	public String replace(String id, String data, RedissonClient redissonClient, Connection connection)
-			throws Exception {
+	public String replace(String id, String data, Jedis jedis, Connection connection) throws Exception {
 		if (data == null)
 			return id;
 
@@ -58,7 +58,7 @@ public class BigtxtLauncher {
 				return insert(data, connection);
 
 			if (data.isEmpty()) {
-				delete(id, redissonClient, connection);
+				delete(id, jedis, connection);
 				return "";
 			}
 
@@ -85,7 +85,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			redissonClient.getBinaryStream("bigdata" + id).delete();
+			jedis.del("bigdata" + id);
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
@@ -147,7 +147,7 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public String delete(String id, RedissonClient redissonClient, Connection connection) throws Exception {
+	public String delete(String id, Jedis jedis, Connection connection) throws Exception {
 		boolean autoCommitSrc = false;
 		try {
 			autoCommitSrc = connection.getAutoCommit();
@@ -165,7 +165,7 @@ public class BigtxtLauncher {
 			if (autoCommitSrc)
 				connection.commit();
 
-			redissonClient.getBinaryStream("bigdata" + id).delete();
+			jedis.del("bigdata" + id);
 			return id;
 		} catch (Exception e) {
 			if (autoCommitSrc)
