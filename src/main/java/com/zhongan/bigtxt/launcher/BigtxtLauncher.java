@@ -189,6 +189,7 @@ public class BigtxtLauncher {
 					IOUtils.copy(in, stream.getOutputStream());
 				}
 			}
+			stream.expireAt(5 * 24 * 60 * 60);
 			return stream.getInputStream();
 		} catch (Exception e) {
 			throw e;
