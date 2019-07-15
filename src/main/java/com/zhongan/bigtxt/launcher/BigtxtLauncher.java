@@ -1,20 +1,26 @@
 package com.zhongan.bigtxt.launcher;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.redisson.Redisson;
+import org.redisson.api.RBinaryStream;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 
 import com.giveup.HtmlUtils;
 import com.giveup.JdbcUtils;
+import com.giveup.ListUtils;
 import com.giveup.OtherUtils;
 import com.giveup.ValueUtils;
 
@@ -64,7 +70,7 @@ public class BigtxtLauncher {
 			ossLauncher.realize(connection, newInnerUrls);
 
 			List<String> oldInnerUrls = HtmlUtils.extractUrls(ValueUtils.toString(oldRow.get("data")));
-			ossLauncher.delete(connection, OtherUtils.extractOffStrs(oldInnerUrls, newInnerUrls, true));
+			ossLauncher.delete(connection, ListUtils.extractOffEles(oldInnerUrls, newInnerUrls));
 
 			sqlParams1 = new ArrayList();
 			sqlParams1.add(new Date());
@@ -173,27 +179,23 @@ public class BigtxtLauncher {
 		}
 	}
 
-	public static String getData(String id, Jedis jedis, Connection connection) throws Exception {
-		PreparedStatement pst = null;
-		PreparedStatement pst1 = null;
-		String sql = null;
-		String sql1 = new StringBuilder("update t_bigtxt set innerUrls=? where id=? ").toString();
-		List sqlParams1 = null;
+	public static InputStream getData(String id, RedissonClient redissonClient, Connection connection)
+			throws Exception {
 		try {
 			// 获取请求参数
-			String data = jedis.get("bigdata" + id);
-			if (data == null || data.isEmpty()) {
-				data = JdbcUtils.runQueryOneString(connection, "select data from t_bigtxt where id=?", id);
-				if (data != null && !data.isEmpty())
-					jedis.setex("bigdata" + id, 1 * 24 * 60, data);
+			RBinaryStream stream = redissonClient.getBinaryStream("bigdata" + id);
+			InputStream in = null;
+			if (!stream.isExists()) {
+				in = JdbcUtils.runQueryOneStream(connection, "select data from t_bigtxt where id=?", id);
+				if (in != null) {
+					IOUtils.copy(in, stream.getOutputStream());
+				}
 			}
-			return data;
+			return stream.getInputStream();
 		} catch (Exception e) {
 			throw e;
 		} finally {
 			// 释放资源
-			if (pst != null)
-				pst.close();
 		}
 	}
 
@@ -208,4 +210,15 @@ public class BigtxtLauncher {
 	// }
 	// return null;
 	// }
+
+	public static void main(String[] args) {
+		Config config = new Config();
+		config.useSingleServer().setAddress("redis://127.0.0.1:6379");
+		RedissonClient redisson = Redisson.create(config);
+		RBucket<String> keyObject = redisson.getBucket("a");
+		keyObject.set("1");
+		keyObject = redisson.getBucket("a");
+		System.out.println(keyObject.get());
+		redisson.shutdown();
+	}
 }
