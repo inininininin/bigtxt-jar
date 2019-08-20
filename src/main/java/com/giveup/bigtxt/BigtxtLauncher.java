@@ -1,4 +1,4 @@
-package com.zhongan.bigtxt.launcher;
+package com.giveup.bigtxt;
 
 import java.io.InputStream;
 import java.sql.Connection;
