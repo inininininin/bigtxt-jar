@@ -17,3 +17,5 @@ target/
 .project
 .settings/
 .svn/
+
+.idea/
